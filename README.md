@@ -1,4 +1,4 @@
-﻿# AI CCTV Video Analytics Platform
+# AI CCTV Video Analytics Platform
 
 **Version:** 0.9.0 | **Status:** Active Development — Phase 9 Complete, Phase 10 Upcoming
 
@@ -38,7 +38,56 @@ A modular, GPU-accelerated AI CCTV Video Analytics platform built with Python, Y
 - **Live Dashboard**: Browser HTML5/JS dashboard — bounding boxes, Track IDs, zone polygons overlay
 - **Video Upload**: Drag-and-drop MP4/AVI/MOV/MKV with ffmpeg faststart optimization
 - **Full Video Mode**: Near-fullscreen video with inline layer controls
+- **Zone Configuration Editor**: Visual polygon editor with interactive vertex manipulation and zone customization
 - **Test Suite**: 110 tests, 100% passing
+
+---
+
+## 📸 Project Screenshots
+
+Visual documentation of the AI CCTV Video Analytics platform showing the real-time dashboard, AI inference overlay, interactive zone editor, and occupancy analytics.
+
+### Main Dashboard Overview
+
+Overall CCTV monitoring dashboard displaying the real-time video feed, YOLOv8 person detection bounding boxes, ByteTrack tracking IDs, spatial zone polygons, GPU compute status, stream properties, and the real-time analytics panel.
+
+![Main Dashboard](docs/screenshots/dashboard-overview.png)
+
+### Live Monitoring (Full Video Mode)
+
+Dedicated near-fullscreen CCTV monitoring layout designed for SOC operators, featuring an integrated HUD status bar (`CAM-01 • LIVE ANALYSIS • Person & Track counts`), interactive layer toggles (`[ ] BOXES`, `# IDS`, `⬡ ZONES`), and distraction-free surveillance visualization.
+
+![Live Monitoring](docs/screenshots/live-monitoring.png)
+
+### Real-Time Person Detection & Multi-Object Tracking
+
+High-precision YOLOv8 person detection paired with ByteTrack multi-object tracking. Visualizes bounding boxes, confidence scores, and persistent Track IDs (`ID #1`, `ID #2`, `ID #3`) across challenging retail surveillance camera angles.
+
+![Person Detection and Tracking](docs/screenshots/person-detection.png)
+
+### Multi-Object Tracking ID Visualization
+
+Detailed tracking status visualization showing assigned track IDs, detection states (`[NEW]`, `[ACTIVE]`), and real-time bounding box association.
+
+![Tracking Visualization](docs/screenshots/tracking-visualization.png)
+
+### Interactive Zone Management & Configuration
+
+Built-in polygon Zone Editor interface allowing operators to visually inspect and manipulate spatial detection zones (`Entrance`, `Waiting Area`) on the CCTV frame, configure anchor assignment (Center / Bottom Center), toggle zone activity, and adjust vertex points.
+
+![Zone Management](docs/screenshots/zone-management.png)
+
+### Zone Configuration & Anchor Properties
+
+Dedicated zone properties sidebar displaying point counts, active vertex geometry, coverage percentages, color tags, and anchor point assignment (Center / Bottom Center).
+
+![Zone Configuration Properties](docs/screenshots/zone-config-properties.png)
+
+### Real-Time Occupancy & Entry/Exit Analytics
+
+Dedicated analytics dashboard displaying instantaneous head counts per spatial zone, active tracking statistics, directional entry/exit boundary crossings, and footfall movement telemetry.
+
+![Occupancy Analytics](docs/screenshots/occupancy-analytics.png)
 
 ---
 
@@ -436,12 +485,16 @@ Response:
 - `TrackStateManager` manages: NEW -> ACTIVE -> LOST -> REMOVED
 - `max_missed_frames=30`: Track removed after 30 consecutive misses
 
+![ByteTrack Multi-Object Tracking](docs/screenshots/tracking-visualization.png)
+
 ### D. Zone Engine (src/zones/zone_engine.py)
 
 - `ZoneEngine` uses `cv2.pointPolygonTest()` for point-in-polygon membership
 - Assignment point: center or bottom-center of bounding box (configurable)
 - Detects ENTERED / LEFT zone transitions per track per frame
 - Known Limitation: Polygons are in fixed pixels; no auto-scale for video resolution
+
+![Zone Configuration & Properties](docs/screenshots/zone-config-properties.png)
 
 ### E. Zone Counting Engine (src/zones/counting_engine.py)
 
@@ -525,7 +578,7 @@ pytest tests/ -v
 
 ## 17. Feature Implementation Status
 
-### COMPLETE (22 features — Verified)
+### COMPLETE (23 features — Verified)
 
 - Video file reading (.mp4, .avi, .mov, .mkv)
 - YOLOv8n person detection on CUDA GPU
@@ -546,18 +599,20 @@ pytest tests/ -v
 - Canvas overlay rendering (bounding boxes, Track IDs, zone polygons)
 - Layer toggles (Boxes / Track IDs / Zones — synchronized between modes)
 - Full Video Mode (near-fullscreen expansion with inline controls)
+- Zone Configuration Editor UI (interactive polygon editor with vertex manipulation)
 - Live analytics panel (persons, tracks, occupancy, entry/exit, footfall)
 - Events feed in dashboard
 - 110-test automated test suite — 100% passing
 
-### PARTIALLY COMPLETE (4 features)
+### PARTIALLY COMPLETE (5 features)
 
+- **Zone Editor backend sync**: In-dashboard Zone Editor enables visual polygon vertex manipulation and client-side persistence (`zoneStore.js`), but automated two-way synchronization back to server `config.yaml` is pending.
 - **Zone analytics panel**: `analytics.js` hardcodes zone element IDs (`zone-occ-entrance`, `zone-occ-waiting`). Adding/renaming zones in config.yaml requires matching HTML/JS changes.
 - **SSE streaming endpoint**: Server-side SSE generator exists in `playback_service.py` but the JavaScript client (`player.js`) polls `process_frame` instead of using SSE.
 - **Annotated video export**: Background pipeline jobs generate annotated MP4 files, but dashboard UI for playing back annotated output needs further integration.
 - **Model weight path**: `config.yaml` points to `data/models/yolov8n.pt` but actual file is at project root. Code fallback works but the intended path is unpopulated.
 
-### NOT IMPLEMENTED (12 features)
+### NOT IMPLEMENTED (11 features)
 
 - RTSP / live camera stream support (`.env.example` placeholder only)
 - Rule engine: `src/rules/` is a stub — no line crossing or intrusion detection
@@ -566,7 +621,6 @@ pytest tests/ -v
 - Queue analytics (Phase 10 planned)
 - Dwell time analytics
 - Cross-camera tracking
-- Zone GUI editor (in-dashboard zone drawing)
 - WebSocket real-time push (SSE endpoint exists but client ignores it)
 - `src/utils/` — stub only, no geometry or visualization helpers
 - `src/core/` — stub only, no shared abstractions
