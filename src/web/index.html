@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI CCTV Platform - SOC Video Analytics Dashboard</title>
+  <link rel="stylesheet" href="/static/css/styles.css?v=4">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='40' fill='%2300f0ff'/></svg>">
+</head>
+<body>
+  <div class="app-container">
+    
+    <!-- Top Header -->
+    <header class="top-header">
+      <div class="brand-section">
+        <div class="brand-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+            <circle cx="12" cy="13" r="4"></circle>
+          </svg>
+        </div>
+        <div class="brand-title">
+          AI CCTV ANALYTICS
+          <span class="brand-badge normal-mode-only" id="gpu-device-badge">CUDA: RTX 4050</span>
+        </div>
+      </div>
+
+      <div class="header-center">
+        <!-- Normal Mode: Video Selector Dropdown -->
+        <div class="video-selector-wrapper normal-mode-only">
+          <span class="selector-label">Target Video:</span>
+          <select id="video-select" class="video-dropdown">
+            <option value="">Loading videos...</option>
+          </select>
+        </div>
+
+        <!-- Full Video Mode Header Controls: Replaces irrelevant options with the video layer options and live status -->
+        <div class="full-video-header-controls" id="full-video-header-controls">
+          <div class="header-cam-badge">
+            <span class="dot-live"></span>
+            <span class="cam-label">CAM-01</span>
+            <span class="divider">•</span>
+            <span class="cam-status" id="floating-status-label">LIVE ANALYSIS</span>
+            <div class="header-hud-stats" id="floating-hud-stats">
+              <span class="fhud-item"><strong id="fhud-det">0</strong> Persons</span>
+              <span class="fhud-item"><strong id="fhud-tracks">0</strong> Tracks</span>
+              <span class="fhud-item" id="fhud-occ-pill">Occ: 0</span>
+            </div>
+          </div>
+
+          <div class="header-layer-toggles">
+            <button class="toggle-btn active" id="f-toggle-boxes" title="Toggle Detection Boxes">
+              <span>[ ] BOXES</span>
+            </button>
+            <button class="toggle-btn active" id="f-toggle-tracks" title="Toggle Track IDs">
+              <span># IDS</span>
+            </button>
+            <button class="toggle-btn active" id="f-toggle-zones" title="Toggle Spatial Zones">
+              <span>⬡ ZONES</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Hidden fallback element for video filename reference -->
+        <span id="full-video-source-filename" style="display: none;"></span>
+      </div>
+
+      <div class="header-right">
+        <div class="status-badge idle normal-mode-only" id="processing-status-badge">
+          <span class="pulse-dot"></span>
+          <span id="processing-status-text">SYSTEM READY</span>
+        </div>
+
+        <!-- Full Video Mode: Dashboard View Button -->
+        <button class="btn-dashboard-view" id="btn-dashboard-view" title="Return to Dashboard View (Esc)">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="3" width="7" height="7"></rect>
+            <rect x="14" y="3" width="7" height="7"></rect>
+            <rect x="14" y="14" width="7" height="7"></rect>
+            <rect x="3" y="14" width="7" height="7"></rect>
+          </svg>
+          <span>Dashboard View</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- App Body: Sidebar + Main Two-Column Content -->
+    <div class="app-body">
+      
+      <!-- Left Sidebar Navigation -->
+      <aside class="sidebar">
+        <div class="nav-group">
+          <div class="nav-header">Operations</div>
+          <a class="nav-item active" id="nav-overview">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="3" width="7" height="7"></rect>
+              <rect x="14" y="3" width="7" height="7"></rect>
+              <rect x="14" y="14" width="7" height="7"></rect>
+              <rect x="3" y="14" width="7" height="7"></rect>
+            </svg>
+            Overview
+          </a>
+          <a class="nav-item" id="nav-video">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polygon points="23 7 16 12 23 17 23 7"></polygon>
+              <rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect>
+            </svg>
+            Video Feeds
+          </a>
+          <a class="nav-item" id="nav-jobs">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="8" y1="6" x2="21" y2="6"></line>
+              <line x1="8" y1="12" x2="21" y2="12"></line>
+              <line x1="8" y1="18" x2="21" y2="18"></line>
+              <line x1="3" y1="6" x2="3.01" y2="6"></line>
+              <line x1="3" y1="12" x2="3.01" y2="12"></line>
+              <line x1="3" y1="18" x2="3.01" y2="18"></line>
+            </svg>
+            Jobs History
+          </a>
+          <a class="nav-item" id="nav-zones">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"></path>
+            </svg>
+            Zone Config
+          </a>
+          <a class="nav-item" id="nav-settings">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="3"></circle>
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+            </svg>
+            Settings
+          </a>
+        </div>
+
+        <div class="sidebar-bottom">
+          <div class="gpu-card">
+            <div class="gpu-title">
+              <span>Compute Device</span>
+              <span class="status-dot-green"></span>
+            </div>
+            <div class="gpu-val" id="gpu-device-text">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="4" y="4" width="16" height="16" rx="2" ry="2"></rect>
+                <rect x="9" y="9" width="6" height="6"></rect>
+                <line x1="9" y1="1" x2="9" y2="4"></line>
+                <line x1="15" y1="1" x2="15" y2="4"></line>
+                <line x1="9" y1="20" x2="9" y2="23"></line>
+                <line x1="15" y1="20" x2="15" y2="23"></line>
+              </svg>
+              RTX 4050 GPU
+            </div>
+          </div>
+        </div>
+      </aside>
+
+      <!-- Main Two-Column Side-by-Side Workspace -->
+      <main class="dashboard-workspace">
+        
+        <!-- LEFT COLUMN: Video Analysis (approx 65%) -->
+        <section class="video-column">
+          
+          <!-- Video Section Header & Layer Toggles -->
+          <div class="section-toolbar">
+            <div class="toolbar-title">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent-cyan)" stroke-width="2">
+                <circle cx="12" cy="12" r="10"></circle>
+                <polygon points="10 8 16 12 10 16 10 8"></polygon>
+              </svg>
+              <span>CAM-01 / VIDEO FEED</span>
+              <span class="brand-badge" id="video-source-badge">test.mp4</span>
+            </div>
+
+            <div class="toolbar-controls">
+              <button class="toggle-btn active" id="toggle-boxes" title="Toggle Detection Boxes">
+                <span>[ ] Boxes</span>
+              </button>
+              <button class="toggle-btn active" id="toggle-tracks" title="Toggle Track IDs">
+                <span># IDs</span>
+              </button>
+              <button class="toggle-btn active" id="toggle-zones" title="Toggle Spatial Zones">
+                <span>⬡ Zones</span>
+              </button>
+              <button class="toggle-btn btn-full-video-toggle" id="btn-full-video" title="Full Video Mode (Expand Viewport)">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"></path>
+                </svg>
+                <span>Full Video</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Video Player Stage & Canvas Overlay -->
+          <div class="video-stage-container has-glow" id="video-stage">
+            
+            <!-- Video Stage: Clean, unobstructed video viewport without overlay controls -->
+
+            <video id="main-video" preload="auto" playsinline muted>
+              Your browser does not support HTML5 video.
+            </video>
+            <canvas id="overlay-canvas"></canvas>
+
+            <!-- Video Loading Spinner -->
+            <div class="video-loading-overlay" id="video-loading" style="display: none;">
+              <div class="spinner"></div>
+              <span id="video-loading-text">Loading video stream...</span>
+            </div>
+
+            <!-- Video Playback Error Overlay -->
+            <div class="video-error-overlay" id="video-error" style="display: none;">
+              <div class="error-icon">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--accent-crimson)" stroke-width="2">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <line x1="12" y1="8" x2="12" y2="12"></line>
+                  <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                </svg>
+              </div>
+              <div class="error-title" id="video-error-title">Video Playback Error</div>
+              <div class="error-desc" id="video-error-desc">Failed to stream video. The file or codec could not be decoded.</div>
+              <button class="btn-retry" id="btn-retry-video">Retry Video Stream</button>
+            </div>
+
+            <!-- Drag & Drop Upload Overlay -->
+            <div class="upload-dropzone" id="dropzone" style="display: none;">
+              <div class="dropzone-icon">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                  <polyline points="17 8 12 3 7 8"></polyline>
+                  <line x1="12" y1="3" x2="12" y2="15"></line>
+                </svg>
+              </div>
+              <div class="dropzone-title">Upload Video Feed</div>
+              <div class="dropzone-sub">Drag & drop CCTV video (.mp4, .avi, .mov) or click below</div>
+              <input type="file" id="file-input" accept=".mp4,.avi,.mov,.mkv" style="display: none;">
+              <button class="btn-upload" onclick="document.getElementById('file-input').click()">
+                Select Video File
+              </button>
+            </div>
+          </div>
+
+          <!-- Custom SOC Video Controls Bar -->
+          <div class="video-controls-bar">
+            <div class="seek-bar-row">
+              <button class="ctrl-btn" id="btn-play-pause" title="Play/Pause">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" id="play-pause-icon">
+                  <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                </svg>
+              </button>
+              <button class="ctrl-btn" id="btn-step-back" title="Previous Frame">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polygon points="19 20 9 12 19 4 19 20"></polygon>
+                  <line x1="5" y1="19" x2="5" y2="5"></line>
+                </svg>
+              </button>
+              <button class="ctrl-btn" id="btn-step-fwd" title="Next Frame">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polygon points="5 4 15 12 5 20 5 4"></polygon>
+                  <line x1="19" y1="5" x2="19" y2="19"></line>
+                </svg>
+              </button>
+              <input type="range" id="seek-slider" class="seek-slider" min="0" max="100" value="0" step="0.1">
+              <div class="timecode-display" id="timecode-display">
+                00:00.00 / 00:00.00
+              </div>
+            </div>
+
+            <div class="playback-buttons-row">
+              <div class="ctrl-btn-group">
+                <button class="ctrl-btn" id="btn-speed-05">0.5x</button>
+                <button class="ctrl-btn primary" id="btn-speed-1">1.0x</button>
+                <button class="ctrl-btn" id="btn-speed-2">2.0x</button>
+              </div>
+
+              <div class="ctrl-btn-group">
+                <span style="font-size: 11px; font-family: var(--font-mono); color: var(--text-muted);" id="frame-counter-display">
+                  Frame 0 / 0
+                </span>
+
+                <!-- Volume Mute/Unmute & Level Slider -->
+                <div class="volume-control-group">
+                  <button class="ctrl-btn" id="btn-volume-toggle" title="Mute/Unmute Audio">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" id="volume-icon">
+                      <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+                      <path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+                      <path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path>
+                    </svg>
+                  </button>
+                  <input type="range" id="volume-slider" class="volume-slider" min="0" max="1" step="0.05" value="1" title="Volume">
+                </div>
+
+                <!-- Browser Native Fullscreen Toggle Button -->
+                <button class="ctrl-btn" id="btn-fullscreen-native" title="Toggle Native Browser Fullscreen">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path>
+                  </svg>
+                </button>
+
+                <!-- Exit Full Video Mode Button (Full Video Mode View) -->
+                <button class="ctrl-btn btn-exit-full-video primary" id="btn-exit-full-video" title="Exit Full Video Mode (Esc)">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M4 14h6v6M20 10h-6V4M14 10l7-7M10 14l-7 7"></path>
+                  </svg>
+                  <span>Exit Full Video</span>
+                </button>
+
+                <!-- Normal Mode: Upload Button -->
+                <button class="ctrl-btn normal-mode-only" id="btn-upload-new" title="Upload New Video">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                    <polyline points="17 8 12 3 7 8"></polyline>
+                    <line x1="12" y1="3" x2="12" y2="15"></line>
+                  </svg>
+                  Upload Video
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Video Metadata & Pipeline Process Action -->
+          <div class="video-meta-actions">
+            <!-- Metadata Card -->
+            <div class="meta-card">
+              <div class="card-title">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <line x1="12" y1="16" x2="12" y2="12"></line>
+                  <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                </svg>
+                Stream Properties
+              </div>
+              <div class="meta-grid">
+                <div>
+                  <div class="meta-item-label">Resolution</div>
+                  <div class="meta-item-val" id="meta-resolution">640x480</div>
+                </div>
+                <div>
+                  <div class="meta-item-label">Source FPS</div>
+                  <div class="meta-item-val" id="meta-fps">30.00</div>
+                </div>
+                <div>
+                  <div class="meta-item-label">Total Frames</div>
+                  <div class="meta-item-val" id="meta-frames">90</div>
+                </div>
+                <div>
+                  <div class="meta-item-label">Duration</div>
+                  <div class="meta-item-val" id="meta-duration">00:03.00</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Export Annotated Video Action Card (Optional) -->
+            <div class="process-action-card">
+              <div>
+                <div class="card-title">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--accent-cyan)" stroke-width="2">
+                    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+                  </svg>
+                  Export Annotated MP4 (Optional)
+                </div>
+                <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">
+                  Real-time AI runs directly during playback. Click below to render and save a permanent annotated video file.
+                </div>
+              </div>
+              <button class="btn-process-run" id="btn-start-process">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                  <polyline points="7 10 12 15 17 10"></polyline>
+                  <line x1="12" y1="15" x2="12" y2="3"></line>
+                </svg>
+                <span>EXPORT ANNOTATED MP4</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Real-time Processing Progress Bar -->
+          <div class="progress-card" id="progress-container" style="display: none;">
+            <div class="progress-header">
+              <span id="progress-status-label">ANALYZING VIDEO FRAMES...</span>
+              <span id="progress-percent">0%</span>
+            </div>
+            <div class="progress-track">
+              <div class="progress-fill" id="progress-bar"></div>
+            </div>
+            <div style="display: flex; justify-content: space-between; font-size: 10px; font-family: var(--font-mono); color: var(--text-muted); margin-top: 6px;">
+              <span id="progress-frames-stat">Frame 0 / 0</span>
+              <span id="progress-fps-stat">Speed: 0.0 FPS</span>
+              <span id="progress-elapsed-stat">Elapsed: 0.0s</span>
+            </div>
+          </div>
+
+        </section>
+
+        <!-- RIGHT COLUMN: Live Analytics Dashboard (approx 35%) -->
+        <section class="analytics-column">
+          
+          <div class="analytics-header">
+            <div class="analytics-title">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent-emerald)" stroke-width="2">
+                <path d="M18 20V10M12 20V4M6 20v-6"></path>
+              </svg>
+              ANALYTICS DASHBOARD
+            </div>
+            <span class="brand-badge" id="analytics-live-badge">REAL-TIME</span>
+          </div>
+
+          <!-- 1. Person Detection and Tracking -->
+          <div class="analytics-card">
+            <div class="card-title-row">
+              <div class="card-title">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--accent-cyan)" stroke-width="2">
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                  <circle cx="12" cy="7" r="4"></circle>
+                </svg>
+                Person Detection & Tracking
+              </div>
+              <div class="card-subtext">YOLOv8 + ByteTrack</div>
+            </div>
+            <div class="metric-grid-3">
+              <div class="metric-box">
+                <div class="metric-box-label">In Current Frame</div>
+                <div class="metric-box-val cyan" id="stat-detected-now">0</div>
+              </div>
+              <div class="metric-box">
+                <div class="metric-box-label">Active Tracks</div>
+                <div class="metric-box-val emerald" id="stat-active-tracks">0</div>
+              </div>
+              <div class="metric-box">
+                <div class="metric-box-label">Total Unique IDs</div>
+                <div class="metric-box-val amber" id="stat-total-unique">0</div>
+              </div>
+            </div>
+            <div style="margin-top: 8px; font-size: 11px; font-family: var(--font-mono); color: var(--text-muted);">
+              Active Track IDs: <span id="stat-active-ids-list" style="color: var(--accent-cyan);">None</span>
+            </div>
+          </div>
+
+          <!-- 2. Zone Occupancy -->
+          <div class="analytics-card">
+            <div class="card-title-row">
+              <div class="card-title">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--accent-purple)" stroke-width="2">
+                  <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
+                  <polyline points="2 17 12 22 22 17"></polyline>
+                  <polyline points="2 12 12 17 22 12"></polyline>
+                </svg>
+                Zone Occupancy (Instantaneous)
+              </div>
+              <div class="card-subtext">Spatial Containment</div>
+            </div>
+            <div class="zone-list" id="zone-list-container">
+              <!-- Zone occupancy cards are dynamically built by analytics.js from zoneStore -->
+            </div>
+            <div style="margin-top: 8px; font-size: 10px; color: var(--text-muted); font-style: italic;">
+              * Reflects spatial presence in the active frame, distinct from cumulative flow.
+            </div>
+          </div>
+
+          <!-- 3. Entry / Exit Analytics -->
+          <div class="analytics-card">
+            <div class="card-title-row">
+              <div class="card-title">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--accent-emerald)" stroke-width="2">
+                  <polyline points="9 11 12 14 22 4"></polyline>
+                  <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
+                </svg>
+                Entry / Exit Analytics
+              </div>
+              <div class="card-subtext">Boundary Crossings</div>
+            </div>
+            <div class="metric-grid-3">
+              <div class="metric-box">
+                <div class="metric-box-label">Total Entries</div>
+                <div class="metric-box-val emerald" id="stat-total-entries">0</div>
+              </div>
+              <div class="metric-box">
+                <div class="metric-box-label">Total Exits</div>
+                <div class="metric-box-val crimson" id="stat-total-exits">0</div>
+              </div>
+              <div class="metric-box">
+                <div class="metric-box-label">Net Flow</div>
+                <div class="metric-box-val cyan" id="stat-net-flow">+0</div>
+              </div>
+            </div>
+            <div style="margin-top: 8px; display: flex; justify-content: space-between; font-size: 11px; font-family: var(--font-mono); color: var(--text-muted);">
+              <span>Zone Transitions:</span>
+              <span id="stat-total-transitions" style="color: var(--accent-purple); font-weight: 600;">0</span>
+            </div>
+          </div>
+
+          <!-- 4. Footfall Analytics (Phase 9 Engine) -->
+          <div class="analytics-card">
+            <div class="card-title-row">
+              <div class="card-title">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--accent-amber)" stroke-width="2">
+                  <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                  <circle cx="8.5" cy="7" r="4"></circle>
+                  <line x1="20" y1="8" x2="20" y2="14"></line>
+                  <line x1="23" y1="11" x2="17" y2="11"></line>
+                </svg>
+                Footfall Analytics Engine
+              </div>
+              <div class="card-subtext" id="footfall-engine-status">Engine Ready</div>
+            </div>
+            <div class="metric-grid-2">
+              <div class="metric-box">
+                <div class="metric-box-label">Movement Events</div>
+                <div class="metric-box-val amber" id="stat-footfall-movements">0</div>
+              </div>
+              <div class="metric-box">
+                <div class="metric-box-label">Flow Balance</div>
+                <div class="metric-box-val cyan" id="stat-footfall-net">+0</div>
+              </div>
+            </div>
+            <div style="margin-top: 8px; font-size: 11px; color: var(--text-muted);" id="footfall-bucket-info">
+              Bucket Interval: 15.0m (900s) | Deduplication: Active
+            </div>
+          </div>
+
+          <!-- 5. Recent Events Feed -->
+          <div class="analytics-card" style="flex: 1;">
+            <div class="card-title-row">
+              <div class="card-title">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" stroke-width="2">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <polyline points="12 6 12 12 14 14"></polyline>
+                </svg>
+                Recent Detection Events
+              </div>
+              <div class="card-subtext" id="events-count-badge">0 Events</div>
+            </div>
+            <div class="events-feed-list" id="events-feed-list">
+              <div style="color: var(--text-muted); font-size: 11px; text-align: center; padding: 20px 0;">
+                No events recorded yet. Run pipeline processing.
+              </div>
+            </div>
+          </div>
+
+        </section>
+
+      </main>
+
+      <!-- Zone Editor View (hidden by default, shown when Zone Config nav clicked) -->
+      <div class="zone-editor-view" id="zone-editor-view" style="display: none;">
+        <div class="ze-main">
+          <!-- Left: Canvas with video frame + zone overlays -->
+          <div class="ze-canvas-wrap">
+            <div class="ze-toolbar">
+              <span class="ze-toolbar-title">⬡ Zone Editor</span>
+              <div class="ze-frame-control">
+                <label>Frame:</label>
+                <input type="range" id="ze-frame-slider" class="ze-slider" min="0" max="10" step="0.04" value="0">
+              </div>
+            </div>
+            <div class="ze-canvas-container">
+              <canvas id="ze-canvas"></canvas>
+            </div>
+          </div>
+          <!-- Right: Zone list + properties -->
+          <div class="ze-sidebar">
+            <div class="ze-section-title">Zones</div>
+            <div class="ze-zone-list" id="ze-zone-list"></div>
+            <div class="ze-section-title" style="margin-top: 16px;">Properties</div>
+            <div class="ze-props" id="ze-props-panel">
+              <div class="ze-props-empty">Select a zone to edit its properties.</div>
+            </div>
+          </div>
+        </div>
+        <div class="ze-footer">
+          <button class="ze-btn ze-btn-reset" id="ze-btn-reset">Reset to Default</button>
+          <div class="ze-footer-right">
+            <button class="ze-btn ze-btn-cancel" id="ze-btn-cancel">Cancel</button>
+            <button class="ze-btn ze-btn-save" id="ze-btn-save">Save Zones</button>
+          </div>
+        </div>
+        <div class="ze-toast" id="ze-toast"></div>
+      </div>
+
+    </div>
+
+    <!-- Bottom Status Bar -->
+    <footer class="bottom-status-bar">
+      <div class="status-left">
+        <div class="status-pill">
+          <span class="status-dot-green"></span>
+          <span>REAL-TIME AI PLAYBACK: YOLOv8n + ByteTrack + Spatial Zones + Footfall</span>
+        </div>
+      </div>
+      <div class="status-right">
+        <span id="bar-latency">0.0 ms</span>
+        <span>•</span>
+        <span id="bar-fps">0.0 FPS</span>
+        <span>•</span>
+        <span id="bar-frames">Frame 0/0</span>
+        <span>•</span>
+        <span id="bar-dropped">0 Dropped</span>
+        <span>•</span>
+        <span id="bar-status">STATUS: READY</span>
+      </div>
+    </footer>
+
+  </div>
+
+  <!-- Client-side Logic Scripts -->
+  <script src="/static/js/zoneStore.js?v=4"></script>
+  <script src="/static/js/player.js?v=4"></script>
+  <script src="/static/js/analytics.js?v=4"></script>
+  <script src="/static/js/zoneEditor.js?v=4"></script>
+  <script src="/static/js/app.js?v=4"></script>
+</body>
+</html>

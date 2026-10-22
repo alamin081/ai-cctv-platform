@@ -1,0 +1,98 @@
+# ==============================================================================
+# AI CCTV Video Analytics Platform - Configuration
+# Phase 9: Footfall Analytics Engine
+# ==============================================================================
+
+app:
+  name: "AI CCTV Video Analytics Platform"
+  version: "0.9.0"
+  stage: "footfall_analytics"
+  environment: "development"
+
+paths:
+  data_dir: "data"
+  videos_dir: "data/videos"
+  outputs_dir: "data/outputs"
+  models_dir: "data/models"
+  configs_dir: "data/configs"
+
+video_input:
+  source: "data/videos/test.mp4"
+  fps: 30
+
+detection:
+  model_name: "data/models/yolov8n.pt"
+  confidence: 0.40
+  iou: 0.45
+  device: "auto" # 'auto', 'cuda', or 'cpu'
+  classes: [0]   # 0 = Person class in COCO dataset
+
+tracking:
+  tracker: "bytetrack"
+  track_high_thresh: 0.5
+  track_low_thresh: 0.1
+  new_track_thresh: 0.6
+  track_buffer: 30
+  match_thresh: 0.8
+  fuse_score: true
+  save_visualization: false
+
+track_state:
+  enabled: true
+  max_missed_frames: 30
+
+# Phase 6: Zone Engine Configuration
+zones:
+  enabled: true
+  assignment_mode: "center"       # 'center' or 'bottom_center'
+  boundary_policy: "inside"       # 'inside' or 'outside'
+  coordinate_system: "normalized" # 'normalized' (0.0-1.0) or 'pixel'
+  definitions:
+    - id: "entrance"
+      name: "Entrance"
+      polygon:
+        - [0.0, 0.0]
+        - [0.5, 0.0]
+        - [0.5, 1.0]
+        - [0.0, 1.0]
+
+    - id: "waiting_area"
+      name: "Waiting Area"
+      polygon:
+        - [0.5, 0.0]
+        - [1.0, 0.0]
+        - [1.0, 1.0]
+        - [0.5, 1.0]
+
+# Phase 7: Zone Counting / Occupancy Configuration
+zone_counting:
+  enabled: true
+
+# Phase 8: Entry / Exit Analytics Configuration
+entry_exit:
+  enabled: true
+  allow_initial_entry: false
+  definitions:
+    - id: "main_entrance"
+      from: null
+      to: "entrance"
+      type: "ENTRY"
+
+    - id: "main_exit"
+      from: "entrance"
+      to: null
+      type: "EXIT"
+
+# Phase 9: Footfall Analytics Configuration
+footfall:
+  enabled: true
+  bucket_minutes: 15
+  deduplicate_events: true
+
+# Placeholders for future phases
+analytics:
+  enabled_rules: []
+
+logging:
+  level: "INFO"
+  format: "%(asctime)s [%(levelname)s] %(name)s: %(message)s"
